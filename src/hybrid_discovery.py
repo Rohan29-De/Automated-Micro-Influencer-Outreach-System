@@ -116,8 +116,8 @@ SERPERS_QUERIES = [
 ]
 
 
-def serper_mass_search() -> List[str]:
-    """Run all 20 Serper queries and collect YouTube URLs."""
+def serper_mass_search(niche: str = "Beauty") -> List[str]:
+    """Run all 20 Serper queries and collect YouTube URLs, filtered by niche."""
     url = "https://google.serper.dev/search"
     headers = {
         "X-API-KEY": SERPER_API_KEY,
@@ -126,7 +126,32 @@ def serper_mass_search() -> List[str]:
 
     all_urls = set()
 
-    for query in SERPERS_QUERIES:
+    # Build niche-specific queries based on the niche param
+    niche_lower = niche.lower()
+    queries = [
+        f"Indian {niche_lower} YouTuber channel site:youtube.com",
+        f"Indian {niche_lower} YouTuber site:youtube.com",
+        f"Indian {niche_lower} YouTube channel site:youtube.com",
+        f"India {niche_lower} vlogger site:youtube.com",
+        f"Indian {niche_lower} blogger YouTube channel",
+        f"Hindi {niche_lower} YouTube channel India",
+        f"Hinglish {niche_lower} YouTube India",
+        f"Indian drugstore {niche_lower} review YouTube",
+        f"affordable {niche_lower} India YouTube",
+        f"Indian girl lifestyle {niche_lower} YouTube",
+        f"Mumbai {niche_lower} blogger YouTube",
+        f"Delhi {niche_lower} vlogger YouTube",
+        f"Bangalore {niche_lower} YouTube channel",
+        f"Indian bridal {niche_lower} YouTube channel",
+        f"desi {niche_lower} haul YouTube",
+        f"Indian college girl {niche_lower} YouTube",
+        f"India {niche_lower} influencer YouTube contact",
+        f"Indian ethnic {niche_lower} fashion YouTube",
+        f"{niche_lower} tutorial YouTube India Hindi",
+        f"{niche_lower} looks YouTube Indian",
+    ]
+
+    for query in queries:
         try:
             payload = {"q": query, "num": 20}
             response = requests.post(url, headers=headers, json=payload, timeout=10)
@@ -145,8 +170,8 @@ def serper_mass_search() -> List[str]:
     return list(all_urls)
 
 
-def enrich_with_youtube(urls: List[str]) -> List[Dict]:
-    """Enrich URLs with YouTube API data."""
+def enrich_with_youtube(urls: List[str], niche_filter: str = None) -> List[Dict]:
+    """Enrich URLs with YouTube API data, optionally filter by niche."""
     valid_profiles = []
 
     for i, url in enumerate(urls):
@@ -183,14 +208,23 @@ def enrich_with_youtube(urls: List[str]) -> List[Dict]:
             profile = build_influencer_profile(channel_data, recent_videos)
 
             if profile:
+                # If niche_filter is provided, check if it matches
+                if niche_filter and profile.get("niche") != niche_filter:
+                    # Allow somewhat flexible matching
+                    niche_lower = niche_filter.lower()
+                    profile_niche = profile.get("niche", "").lower()
+                    if niche_lower not in profile_niche and profile_niche not in niche_lower:
+                        print(f"  ⏭️ Skipping: {url[:40]} - niche mismatch ({profile.get('niche')})")
+                        continue
+
                 profile["source"] = "youtube_api"
                 valid_profiles.append(profile)
                 print(f"  ✅ {profile['name']} | {profile['followers']} subs | {profile['niche']}")
             else:
                 print(f"  ⏭️ Skipping: {url[:40]} - profile build failed")
 
-        except Exception as e:
-            print(f"  ⏭️ Skipping: {url[:40]} - error: {str(e)[:30]}")
+        except Exception:
+            print(f"  ⏭️ Skipping: {url[:40]} - error")
             continue
 
         time.sleep(1)  # Rate limiting
@@ -198,8 +232,8 @@ def enrich_with_youtube(urls: List[str]) -> List[Dict]:
     return valid_profiles
 
 
-def generate_realistic_profile(existing_names: set) -> Dict:
-    """Generate a realistic Indian influencer profile."""
+def generate_realistic_profile(existing_names: set, niche_filter: str = None) -> Dict:
+    """Generate a realistic Indian influencer profile, optionally matching niche_filter."""
     # Pick a name not already used
     available_names = [n for n in INDIAN_NAMES if n not in existing_names]
     if not available_names:
@@ -209,7 +243,12 @@ def generate_realistic_profile(existing_names: set) -> Dict:
     handle = name.lower().replace(" ", "")
     existing_names.add(name)
 
-    niche = random.choice(list(NICHE_CONTENT_THEMES.keys()))
+    # Use niche_filter if provided, otherwise random
+    if niche_filter:
+        niche = niche_filter
+    else:
+        niche = random.choice(list(NICHE_CONTENT_THEMES.keys()))
+
     city = random.choice(CITIES)
 
     # Weighted language selection
@@ -250,20 +289,20 @@ def generate_realistic_profile(existing_names: set) -> Dict:
     }
 
 
-def fill_remaining(existing: List[Dict], target: int = 50) -> List[Dict]:
-    """Fill gap with realistic generated profiles."""
+def fill_remaining(existing: List[Dict], target: int = 50, niche_filter: str = None) -> List[Dict]:
+    """Fill gap with realistic generated profiles, optionally matching niche."""
     if len(existing) >= target:
         return existing[:target]
 
     gap = target - len(existing)
-    print(f"\nGap of {gap} profiles, generating realistic profiles...")
+    print(f"\nGap of {gap} profiles, generating realistic profiles for {niche_filter or 'all niches'}...")
 
     # Collect existing names to avoid duplicates
     existing_names = {p["name"] for p in existing}
 
     generated = []
-    for i in range(gap):
-        profile = generate_realistic_profile(existing_names)
+    for _ in range(gap):
+        profile = generate_realistic_profile(existing_names, niche_filter=niche_filter)
         generated.append(profile)
         print(f"  📝 Generated: {profile['name']} | {profile['followers']} subs | {profile['niche']}")
 
@@ -314,25 +353,25 @@ def print_summary(profiles: List[Dict]):
     print("=" * 60)
 
 
-def run_hybrid_discovery(target: int = 50) -> List[Dict]:
+def run_hybrid_discovery(target: int = 50, niche: str = "Beauty", platform: str = "YouTube") -> List[Dict]:
     """Main orchestrator for hybrid discovery."""
     print("=" * 60)
-    print("HYBRID INFLUENCER DISCOVERY")
+    print(f"HYBRID INFLUENCER DISCOVERY - {niche}")
     print("=" * 60)
 
-    # Step 1: Mass Serper search
-    print("\n[1/3] Running mass Serper search (20 queries)...")
-    urls = serper_mass_search()
+    # Step 1: Mass Serper search with niche
+    print(f"\n[1/3] Running mass Serper search for {niche}...")
+    urls = serper_mass_search(niche=niche)
     print(f"Found {len(urls)} YouTube URLs via Serper")
 
     # Step 2: Enrich with YouTube API
     print("\n[2/3] Enriching with YouTube API...")
-    real_profiles = enrich_with_youtube(urls)
+    real_profiles = enrich_with_youtube(urls, niche_filter=niche)
     print(f"Enriched {len(real_profiles)} real profiles via YouTube API")
 
-    # Step 3: Fill remaining with generated
+    # Step 3: Fill remaining with generated profiles using niche
     print("\n[3/3] Gap-filling...")
-    final_profiles = fill_remaining(real_profiles, target)
+    final_profiles = fill_remaining(real_profiles, target, niche_filter=niche)
 
     # Save to files
     save_to_files(final_profiles)
