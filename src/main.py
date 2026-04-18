@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import all modules (after adding parent to path)
 from src.influencer_data import get_influencers
+from src.hybrid_discovery import run_hybrid_discovery
 from src.filter_segments import create_segments, save_segments
 from src.profile_enrichment import enrich_all as enrich_profiles, save_enriched_data
 from src.message_generator import generate_all_messages, save_messages
@@ -18,6 +19,21 @@ from src.sending_layer import (
     explain_dm_sending_workflow,
     run_mock_sending_campaign
 )
+
+
+# Auto-run discovery if data file doesn't exist
+if not os.path.exists("data/raw/influencers_raw.json"):
+    print("Running hybrid discovery to generate influencer data...")
+    run_hybrid_discovery(target=50)
+
+
+def load_influencer_data():
+      """Load influencer data from file (always uses hybrid discovery file)."""
+      real_data_path = "data/raw/influencers_raw.json"
+      with open(real_data_path) as f:
+          data = json.load(f)
+      print(f"  Loaded {len(data)} influencers from hybrid discovery")
+      return pd.DataFrame(data)
 
 
 def run_pipeline():
@@ -31,7 +47,7 @@ def run_pipeline():
     # Stage 1: Load Influencer Data
     print("\n[STAGE 1] Loading influencer data...")
     try:
-        influencers_df = pd.DataFrame(get_influencers())
+        influencers_df = load_influencer_data()
         print(f"   ✓ Loaded {len(influencers_df)} influencers")
     except Exception as e:
         print(f"   ✗ Error loading data: {e}")

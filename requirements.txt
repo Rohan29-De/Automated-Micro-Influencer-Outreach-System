@@ -4,3 +4,5 @@ openpyxl
 python-dotenv
 jinja2
 groq
+requests
+google-api-python-client
