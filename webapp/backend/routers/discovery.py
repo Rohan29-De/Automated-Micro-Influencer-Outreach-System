@@ -40,12 +40,21 @@ async def get_discovery_status():
 
 @router.get("/discover/results")
 async def get_discovery_results():
-    """Get final list of discovered influencers"""
-    raw_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data/raw/influencers_raw.json")
+    """Get final list of discovered influencers - reads directly from file"""
+    # Hardcoded absolute path for reliability
+    raw_path = "/home/rohan/micro_influencer_outreach/data/raw/influencers_raw.json"
+
     if os.path.exists(raw_path):
         with open(raw_path) as f:
             data = json.load(f)
+
+        # Update state
+        discovery_state["status"] = "complete"
+        discovery_state["influencers"] = data
+        discovery_state["message"] = f"Found {len(data)} influencers"
+
         return {"count": len(data), "influencers": data}
+
     return {"count": 0, "influencers": []}
 
 

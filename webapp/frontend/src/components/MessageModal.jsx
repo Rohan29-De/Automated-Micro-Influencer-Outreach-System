@@ -1,10 +1,7 @@
-import { X, Copy, Check } from 'lucide-react'
 import { useState } from 'react'
 
-export default function MessageModal({ influencer, onClose }) {
+export default function MessageModal({ influencer, messageData, onClose }) {
   const [copied, setCopied] = useState(null)
-
-  if (!influencer) return null
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text)
@@ -12,60 +9,81 @@ export default function MessageModal({ influencer, onClose }) {
     setTimeout(() => setCopied(null), 2000)
   }
 
+  const emailPitch = messageData?.email_pitch || 'No email generated yet...'
+  const dmPitch = messageData?.dm_pitch || 'No DM generated yet...'
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }} onClick={onClose}>
+      <div className="card max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h3 className="text-xl font-bold">Outreach Messages</h3>
-            <p className="text-gray-500">{influencer.name} • {influencer.handle}</p>
+            <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Outreach Messages</h3>
+            <p style={{ color: 'var(--text-secondary)' }}>{influencer?.name} • {influencer?.handle}</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="p-2 rounded-lg" style={{ backgroundColor: 'var(--bg-hover)' }}>✕</button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-4">
+          <button className="px-4 py-2 rounded-lg" style={{ backgroundColor: 'var(--accent)', color: 'white' }}>
+            📧 Email Pitch
+          </button>
+          <button className="px-4 py-2 rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)' }}>
+            📱 Instagram DM
           </button>
         </div>
 
-        <div className="space-y-6">
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <h4 className="font-medium">Email Pitch</h4>
-              <button
-                onClick={() => copyToClipboard(influencer.email_pitch || 'Sample email', 'email')}
-                className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700"
-              >
-                {copied === 'email' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                Copy
-              </button>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg text-sm text-gray-700 whitespace-pre-wrap">
-              {influencer.email_pitch || 'Email pitch will appear here after generation...'}
-            </div>
+        {/* Email Content */}
+        <div className="mb-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Subject: Collaboration Opportunity with Conversely AI</span>
+            <button
+              onClick={() => copyToClipboard(emailPitch, 'email')}
+              className="text-sm px-3 py-1 rounded"
+              style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--accent)' }}
+            >
+              {copied === 'email' ? '✓ Copied!' : '📋 Copy Email'}
+            </button>
           </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <h4 className="font-medium">DM Pitch</h4>
-              <button
-                onClick={() => copyToClipboard(influencer.dm_pitch || 'Sample DM', 'dm')}
-                className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700"
-              >
-                {copied === 'dm' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                Copy
-              </button>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg text-sm text-gray-700 whitespace-pre-wrap">
-              {influencer.dm_pitch || 'DM pitch will appear here after generation...'}
-            </div>
+          <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', whiteSpace: 'pre-wrap' }}>
+            {emailPitch}
+          </div>
+          <div className="mt-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            {emailPitch.split(' ').length} words
           </div>
         </div>
 
-        <div className="mt-6 flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200"
+        {/* DM Content */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>DM Message</span>
+            <button
+              onClick={() => copyToClipboard(dmPitch, 'dm')}
+              className="text-sm px-3 py-1 rounded"
+              style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--accent)' }}
+            >
+              {copied === 'dm' ? '✓ Copied!' : '📋 Copy DM'}
+            </button>
+          </div>
+          <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', whiteSpace: 'pre-wrap' }}>
+            {dmPitch}
+          </div>
+          <div className="mt-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            {dmPitch.split(' ').length} words
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-between items-center pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+          <div>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Contact: {influencer?.contact_email}</p>
+          </div>
+          <a
+            href={`mailto:${influencer?.contact_email}?subject=Collaboration Opportunity with Conversely AI&body=${encodeURIComponent(emailPitch)}`}
+            className="btn-primary"
           >
-            Close
-          </button>
+            📤 Send via Gmail
+          </a>
         </div>
       </div>
     </div>

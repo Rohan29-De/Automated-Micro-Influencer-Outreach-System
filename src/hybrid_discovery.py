@@ -312,20 +312,25 @@ def fill_remaining(existing: List[Dict], target: int = 50, niche_filter: str = N
 
 def save_to_files(profiles: List[Dict]):
     """Save profiles to JSON and CSV."""
-    os.makedirs("data/raw", exist_ok=True)
+    # Use absolute path from project root
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    data_dir = os.path.join(project_root, "data/raw")
+    os.makedirs(data_dir, exist_ok=True)
 
     # Update IDs
     for i, p in enumerate(profiles):
         p["id"] = i + 1
 
     # Save JSON
-    with open("data/raw/influencers_raw.json", "w", encoding="utf-8") as f:
+    json_path = os.path.join(data_dir, "influencers_raw.json")
+    with open(json_path, "w", encoding="utf-8") as f:
         json.dump(profiles, f, indent=2, ensure_ascii=False)
 
     # Save CSV
     if profiles:
         fieldnames = list(profiles[0].keys())
-        with open("data/raw/influencers_raw.csv", "w", newline="", encoding="utf-8") as f:
+        csv_path = os.path.join(data_dir, "influencers_raw.csv")
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(profiles)
